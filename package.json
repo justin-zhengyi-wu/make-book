@@ -1,0 +1,24 @@
+{
+    "name": "make-book",
+    "version": "1.0.0",
+    "description": "Make a book for e-reader",
+    "main": "app.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "request": "*"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/justin-zhengyi-wu/make-book.git"
+    },
+    "keywords": [
+        "Book"
+    ],
+    "author": "justin.zhengyi.wu@gmail.com",
+    "license": "BSD-2-Clause",
+    "bugs": {
+        "url": "https://github.com/justin-zhengyi-wu/make-book/issues"
+    }
+}
