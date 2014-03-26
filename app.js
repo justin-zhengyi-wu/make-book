@@ -2,7 +2,11 @@ var FS = require('fs');
 var fetch = require('./fetch');
 
 
-var bookUrl = 'http://h5.qidian.com/bookinfo.html?bookid=3092598';
+var bookUrl = process.argv[2];
+if (!bookUrl) {
+    console.log('Please pass the URL of the book you want to make.');
+    process.exit(1);
+}
 var bookBasePath;
 var bookName;
 
