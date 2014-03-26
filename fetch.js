@@ -90,9 +90,9 @@ exports.book = function(bookUrl, callback) {
                         i++;
                     }
 
-                    sendNextRequestThenWriteFile(bookFolder, chaptersUrlArray, 0);
-
                     FS.writeFile(bookFolder + 'chapters.txt', chaptersData, writeFileCallbackHandler);
+                    
+                    sendNextRequestThenWriteFile(bookFolder, chaptersUrlArray, 0);
                 } else {
                     throw new Error(error);
                 }
