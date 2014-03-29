@@ -8,7 +8,7 @@ var Events = require('events');
 
 exports.book = function(bookUrl, callback) {
     var eventEmitter = new Events.EventEmitter();
-    var bookName, bookId, authorName, baseUrl, bookInfoUrl, bookChaptersUrl, chapterUrl, outputFolder = './output/';
+    var bookName, bookId, authorName, baseUrl, bookInfoUrl, bookChaptersUrl, chapterUrl, outputFolder = './output/', downloadedChaptersNum = 0, chaptersNum = 0;
 
     function extractBookId(url) {
         var urlObj = URL.parse(url);
@@ -20,30 +20,25 @@ exports.book = function(bookUrl, callback) {
         return urlObj.protocol + '//' + urlObj.hostname + (urlObj.port || '') + '/';
     }
     function writeFileCallbackHandler(err) {
-        if (err) {throw err;}    
-    }
-    function sendNextRequestThenWriteFile(bookFolder, chaptersUrlArray, index) {
-        if (index < chaptersUrlArray.length) {
-            var opt = {
-                url: chaptersUrlArray[index].url,
-                json: true
-            };
-            Request(opt, function (error, response, body) {
-                if (!error && response.statusCode == 200) {
-                    var content = body.ReturnObject[0].Content;
-                    // Replace the paragraph elements with new lines.
-                    content = content.replace(/<p>/g,'\n');
-                    // Remove the link tags.
-                    content = content.replace(/<a(?:.|\n)*\/a>/gm, '');
-                    FS.writeFile(bookFolder + chaptersUrlArray[index].name + '.txt', content, writeFileCallbackHandler);
-                }
-                sendNextRequestThenWriteFile(bookFolder, chaptersUrlArray, ++index);            
-            }); 
-        } else {
+        if (err) {throw err;}
+        if (downloadedChaptersNum++ === chaptersNum) {
             eventEmitter.emit('bookDataFetched');
         }
     }
-
+    function fetchChapterThenWrite(bookFolder, chapter) {
+        var chapterName = chapter.name;
+        Request({url: chapter.url, json: true}, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                var content = body.ReturnObject[0].Content;
+                // Replace the paragraph elements with new lines.
+                content = content.replace(/<p>/g,'\n');
+                // Remove the link tags.
+                content = content.replace(/<a(?:.|\n)*\/a>/gm, '');
+                console.log("Start to download chapter " + chapterName + " ...");
+                FS.writeFile(bookFolder + chapterName + '.txt', content, writeFileCallbackHandler);
+            }
+        });         
+    }
 
     bookId = extractBookId(bookUrl);
     baseUrl = extractBaseUrl(bookUrl);
@@ -71,6 +66,7 @@ exports.book = function(bookUrl, callback) {
                     }
 
                     var chapters = body.ReturnObject[1];
+                    chaptersNum = chapters.length;
                     var bookFolder = outputFolder + bookName + '-' + authorName + '/';
                     if (!FS.existsSync(bookFolder)) {
                         FS.mkdirSync(bookFolder);
@@ -79,25 +75,23 @@ exports.book = function(bookUrl, callback) {
                     var chaptersData = '';
                     var chapterName = '';
                     var chapterId;
-                    var chaptersUrlArray = [];
                     var i = 0;
                     var len = chapters.length;
                     while (i < len) {
                         chapterName = chapters[i].ChapterName;
-                        chapterId = chapters[i].ChapterId;
-                        chaptersUrlArray.push({url: chapterUrl + chapterId, name: chapterName});
                         chaptersData += chapterName + '\n';
+
+                        chapterId = chapters[i].ChapterId;
+                        fetchChapterThenWrite(bookFolder, {url: chapterUrl + chapterId, name: chapterName});
+
                         i++;
                     }
 
                     FS.writeFile(bookFolder + 'chapters.txt', chaptersData, writeFileCallbackHandler);
-                    
-                    sendNextRequestThenWriteFile(bookFolder, chaptersUrlArray, 0);
                 } else {
                     throw new Error(error);
                 }
             });
-
         } else {
             throw new Error(error);
         }
@@ -108,7 +102,7 @@ exports.book = function(bookUrl, callback) {
             var book = {
                 bookName: bookName,
                 authorName: authorName
-            }
+            };
             callback(book);
         }    
     });
